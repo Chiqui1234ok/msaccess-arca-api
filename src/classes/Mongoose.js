@@ -9,7 +9,10 @@ class Database {
         if(!this.dbName)
             throw new Error('El nombre de la base de datos no fue especificado.');
         
-        await connect(`mongodb://127.0.0.1:27017/${this.dbName}`);
+        await connect(
+            `mongodb://127.0.0.1:27017/${this.dbName}`,
+            {}
+        );
     }
 }
 
