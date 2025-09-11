@@ -38,7 +38,6 @@ export default class Arca extends Afip {
      * @property {number} Cantidad
      * @property {number} IVA
      */
-
     /**
      * @param {Item[]} items - Details of each item in the voucher
      * @returns {{ ImpTotal: number, ImpNeto: number, ImpIVA: number }}
@@ -67,10 +66,42 @@ export default class Arca extends Afip {
     }
 
     /**
-     * Calculate and finds each tax ID per item
+     * @typedef {Object} IvaData
+     * @property {string} Id - Identificador del tipo de IVA.
+     * @property {number} BaseImp - Base imponible asociada.
+     * @property {number} Importe - Monto del IVA calculado.
      */
-    calculateVoucherItems(items) {
-        
+    /**
+     * Get the ID of each IVA involved in the voucher.
+     * Through [items], this function determines which IVA types are present and their respective amounts.
+     *
+     * @param {items[]} items - Details of each item in the voucher
+     * @returns {IvaData[]} Array of objects, each containing Id, BaseImp and Importe.
+     */
+
+    async setIvaArray(items) {
+        let IvaData = [];
+        for(let i = 0;i < items.length;i++) {
+            const ivaItem = {
+                Id: await Aliquots.findOne({ Desc: items[i].IVA }).then(result => result ? result.Id : null),
+                BaseImp: items[i].Importe * items[i].Cantidad,
+                Importe: (items[i].Importe * items[i].Cantidad) * (items[i].IVA / 100)
+            };
+            if(!ivaItem.Id) {
+                throw new Error(`Indicaste un tipo de IVA incorrecto: "${items[i].IVA}"`);
+            }
+            // Check if this IVA type already exists in the array (IvaData)
+            const existingIva = IvaData.find(iva => iva.Id === ivaItem.Id);
+            if(existingIva) {
+                // If this IVA type already exists, sum the values
+                existingIva.BaseImp += ivaItem.BaseImp;
+                existingIva.Importe += ivaItem.Importe;
+            } else {
+                // If it's a new IVA type, add it to the array
+                IvaData.push(ivaItem);
+            }
+        }
+        return IvaData;
     }
 
     /**
@@ -102,13 +133,12 @@ export default class Arca extends Afip {
      * @param {*} data - ex: "2025-08-01T03:00:00.000Z" 
      * @returns ex: "2025-08-01T03:00:00.000Z" formatted to "20250801" (ARCA uses this format)
      */
-    getArcaDate(data) {
-        const date = new Date(data);
-        
-        const year = date.getUTCFullYear();
-        const month = String(date.getUTCMonth() + 1).padStart(2, "0"); // enero=0
-        const day = String(date.getUTCDate()).padStart(2, "0");
-
+    getArcaDate(date = new Date()) {
+        // Ajusta la fecha a la zona local
+        const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        const year = localTime.getFullYear();
+        const month = String(localTime.getMonth() + 1).padStart(2, "0"); // 01~12
+        const day = String(localTime.getDate()).padStart(2, "0");        // 01~31
         return `${year}${month}${day}`;
     }
 
