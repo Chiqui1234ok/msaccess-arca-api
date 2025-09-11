@@ -9,7 +9,9 @@ import documents from './routes/documents.js';
 import index from './routes/index.js';
 import iva from './routes/iva.js';
 import pos from './routes/pos.js';
+import tributes from './routes/tributes.js';
 import voucher from './routes/voucher.js';
+import { __invoice } from "./config/paths.js";
 
 // Start application
 if(!process.env.MS_ACCESS_WEBAPP_PORT)
@@ -26,12 +28,16 @@ app.use(morgan);
 // Support for json
 app.use(express.json());
 
+// Make "public" folder accessible
+app.use(express.static(__invoice));
+
 // Routes
 app.use('/arca/documents', documents);
 app.use('/', index);
-app.use('/arca/voucher', voucher);
-app.use('/arca/pos', pos);
 app.use('/arca/iva', iva);
+app.use('/arca/pos', pos);
+app.use('/arca/tributes', tributes);
+app.use('/arca/voucher', voucher);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
