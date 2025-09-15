@@ -3,6 +3,8 @@ import Afip from "@afipsdk/afip.js";
 import path from 'path';
 import { fileURLToPath } from "url";
 import Aliquots from "../models/Aliquots.js";
+import Tributes from "../models/Tributes.js";
+import Voucher from '../models/Voucher.js'
 
 export default class Arca extends Afip {
     constructor() {
@@ -53,7 +55,9 @@ export default class Arca extends Afip {
         let ImpIVA = 0; // Total IVA amount
         for(let i = 0;i < items.length;i++) {
             const item = items[i];
-            const itemWithIva = (item.Importe * item.Cantidad) * (1 + (item.IVA / 100));
+            // Convert IVA (front-end sends as percentage) to decimal (ex: 0.21 converts to 21). This convertion happens only when front-end sends IVA as percentaje/decimal, otherwise we will keep it intact.
+            const IvaValue = items[i].IVA != 0 && items[i].IVA <= 1 ? items[i].IVA * 100 : items[i].IVA;
+            const itemWithIva = (item.Importe * item.Cantidad) * (1 + (IvaValue / 100));
             const itemWithoutIva = (item.Importe * item.Cantidad);
             // Adds final value to ImpTotal (including IVA)
             ImpTotal += itemWithIva;
@@ -78,36 +82,79 @@ export default class Arca extends Afip {
      * @param {items[]} items - Details of each item in the voucher
      * @returns {IvaData[]} Array of objects, each containing Id, BaseImp and Importe.
      */
-
+    // 2025-09-14: moved to IvaSchema
     async setIvaArray(items) {
         let IvaData = [];
         for(let i = 0;i < items.length;i++) {
-            const ivaItem = {
-                Id: await Aliquots.findOne({ Desc: items[i].IVA }).then(result => result ? result.Id : null),
+            // Convert IVA (front-end sends as percentage) to decimal (ex: 0.21 converts to 21)
+            const IvaValue = items[i].IVA != 0 && items[i].IVA <= 1 ? items[i].IVA * 100 : items[i].IVA;
+
+            const IvaItem = {
+                Id: await Aliquots.findOne({ Desc: IvaValue }).then(result => result ? result.Id : null),
                 BaseImp: items[i].Importe * items[i].Cantidad,
-                Importe: (items[i].Importe * items[i].Cantidad) * (items[i].IVA / 100)
+                Importe: (items[i].Importe * items[i].Cantidad) * (IvaValue / 100)
             };
-            if(!ivaItem.Id) {
+            if(!IvaItem.Id) {
                 throw new Error(`Indicaste un tipo de IVA incorrecto: "${items[i].IVA}"`);
             }
             // Check if this IVA type already exists in the array (IvaData)
-            const existingIva = IvaData.find(iva => iva.Id === ivaItem.Id);
+            const existingIva = IvaData.find(iva => iva.Id === IvaItem.Id);
             if(existingIva) {
                 // If this IVA type already exists, sum the values
-                existingIva.BaseImp += ivaItem.BaseImp;
-                existingIva.Importe += ivaItem.Importe;
+                existingIva.BaseImp += IvaItem.BaseImp;
+                existingIva.Importe += IvaItem.Importe;
             } else {
                 // If it's a new IVA type, add it to the array
-                IvaData.push(ivaItem);
+                IvaData.push(IvaItem);
             }
         }
         return IvaData;
     }
 
     /**
+     * @typedef {Object} tributesData
+     * @property {string} Id - Identificador del tipo de tributo.
+     * @property {string} [Desc] - Descripción opcional del tributo.
+     * @property {number} BaseImp - Base imponible del tributo.
+     * @property {number} Alic - Alícuota aplicada.
+     * @property {number} Importe - Monto del tributo calculado.
+     */
+    /**
+     * Applies taxes to the voucher based on the provided tributes and base amount.
+     *
+     * @param {tributes[]} tributes - Details of each tax to be applied
+     * @returns {tributesData[]} Array of objects, each containing Id, Desc, BaseImp, Alic and Importe.
+     */
+    async setTributesArray(tributes) {
+        if(!tributes || !Array.isArray(tributes) || tributes.length === 0) {
+            return [];
+        }
+        let tributesData = [];
+        let i = 0;
+        while(i < tributes.length) {
+            // Skip tributes which aren't defined
+            if(!tributes[i].Alicuota) {
+                tributes.splice(i, 1);
+                i++;
+                continue;
+            }
+            const Alicuota = tributes[i].Alicuota != 0 && parseFloat(tributes[i].Alicuota) <= 1 ? parseFloat(tributes[i].Alicuota) : parseFloat(tributes[i].Alicuota) / 100;
+            const taxItem = {
+                Id: tributes[i].arcaId,
+                BaseImp: tributes[i].Base_Imponible,
+                Alic: Alicuota,
+                Importe: parseFloat(tributes[i].Base_Imponible) * Alicuota
+            };
+            tributesData.push(taxItem);
+            i++;
+        }
+        return tributesData;
+    }
+
+    /**
      * Gets a voucher by its number, point of sale and type of voucher.
      */
-    async getVoucher(data) {
+    async getVoucherFromArca(data) {
         if(!data.voucher_number)
             throw new Error('Número de comprobante no definido.');
         if(!data.PtoVta)
@@ -129,12 +176,34 @@ export default class Arca extends Afip {
     }
 
     /**
+     * Gets a voucher by its number and point of sale.
+     * Is useful when you want to check a voucher registered though the API
+     */
+    async getVoucherFromDb(data) {
+        if(!data.voucherNumber) {
+            throw new Error('Número de comprobante no definido.');
+        }
+        if(!data.PtoVta) {
+            throw new Error('Punto de venta no definido.');
+        }
+
+        const dbVoucher = await dbVoucher.findOne({
+            VoucherNumber: data.VoucherNumber,
+            PtoVta: data.PtoVta
+        });
+
+        if(dbVoucher) return dbVoucher;
+        else throw new Error('Comprobante no encontrado.');
+    }
+
+    /**
      * 
      * @param {*} data - ex: "2025-08-01T03:00:00.000Z" 
      * @returns ex: "2025-08-01T03:00:00.000Z" formatted to "20250801" (ARCA uses this format)
      */
     getArcaDate(date = new Date()) {
-        // Ajusta la fecha a la zona local
+        // Guarantee the date is a Date object
+        date = (date instanceof Date) ? date : new Date(date);
         const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
         const year = localTime.getFullYear();
         const month = String(localTime.getMonth() + 1).padStart(2, "0"); // 01~12

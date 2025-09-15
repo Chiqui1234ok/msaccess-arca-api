@@ -1,5 +1,7 @@
 import express from "express";
 import Arca from "../classes/Arca.js";
+import Voucher from "../models/Voucher.js";
+import { IvaModel } from "../models/Iva.js";
 
 const router = express.Router();
 
@@ -38,66 +40,47 @@ router.post('/', async (req, res) => {
  */
 router.post('/new', async (req, res) => {
 	try {
-		const { Concepto, PtoVta, CbteTipo, DocNro, Razon_Social, DocTipo, CondicionIVAReceptorId } = req.body;
-		let { FchServDesde, FchServHasta, FchVtoPago, Items } = req.body;
+		const { PtoVta, VoucherItems, VoucherTributos } = req.body;		
+
+		console.log('Lo que llega de Access:', req.body);
 
 		const arca = new Arca();
-		/**
-		 * Check required fields
-		 * FchVtoPago is always required
-		 * If Concepto != 'Producto' (id == 1), then FchServDesde and FchServHasta are also required.
-		 */
-		if(!FchVtoPago) {
-			return res.status(400).send({ error: 'FchVtoPago es obligatorio.' });
+		const newVoucher = new Voucher(req.body);
+		newVoucher.validarInput(req.body);
+
+		// 🏁 Cálculo de datos básicos
+		newVoucher.PtoVta = process.env.MS_ACCESS_WEBAPP_NODE_ENV == 'dev' ? 1 : PtoVta;
+		newVoucher.calcularFechasArca();	
+
+		// 🏁 Cálculo de alícuotas de IVA
+		newVoucher.Iva = await IvaModel.calcularArray(VoucherItems);
+
+		// 🏁 Cálculo de tributos
+		if(VoucherTributos) {
+			const Tributos = await arca.setTributesArray(VoucherTributos);
+			// Se escriben los Tributos sólo
+			if(Tributos.length > 0)	newVoucher.Tributos = Tributos;
 		}
-		if(Concepto != 1 && (!FchServDesde || !FchServHasta)) {
-			return res.status(400).send({ error: 'FchServDesde, FchServHasta y FchVtoPago son obligatorios si Concepto es distinto de "Producto".' });
-		}
-		// Voucher's date data
-		const CbteFch = arca.getArcaDate(new Date());		
-		FchServDesde = arca.getArcaDate(FchServDesde);
-		FchServHasta = arca.getArcaDate(FchServHasta);
-		FchVtoPago = arca.getArcaDate(FchVtoPago);
-		
-		if(!Items) {
-			return res.status(400).send({ error: 'No se han definido items para la factura.' });
-		}
+		newVoucher.ImpTrib = newVoucher.Tributos ? newVoucher.Tributos.reduce((resultado, Tributo) => resultado + Number(Tributo.Importe || 0), 0) : 0;
 
-		// console.log(Items);
+		// Cálculo de sumas/totales del voucher
+		newVoucher.calcularSumasDelVoucher(VoucherItems);
+		console.log('ImpIVA', newVoucher.ImpIVA);
 
-		let { ImpTotal, ImpNeto, ImpIVA } = arca.calculateVoucherSums(Items);
-		let Iva = await arca.setIvaArray(Items);
+		let dataForArca = newVoucher.toObject();
+		dataForArca.CantReg = 1;
 
-		console.log('Iva calculado:', Iva);
-
-		// Info del comprobante
-		let dataForArca = {
-			'CantReg': 1,  	// Cantidad de comprobantes a registrar
-			Concepto,
-			PtoVta: process.env.MS_ACCESS_WEBAPP_NODE_ENV === 'prod' ? PtoVta : 1,
-			CbteTipo,
-			FchServDesde,
-			FchServHasta,
-			FchVtoPago,
-			DocNro,
-			DocTipo,
-			CondicionIVAReceptorId,
-			CbteFch,
-			ImpTotal,
-			'ImpTotConc': 0,   		// Importe neto no gravado
-			ImpNeto,
-			'ImpOpEx' 	: 0,   		// Importe exento de IVA
-			ImpIVA,
-			'ImpTrib' 	: 0,   		//Importe total de tributos
-			'MonId' 	: 'PES', 	// Moneda utilizada ('PES' = AR$)
-			'MonCotiz' 	: 1,     	// Cotización de la moneda usada (1 para pesos argentinos)  
-			Iva, 					// Alícuotas asociadas al comprobante
-			// 'Tributos' 	: items
-		};
+		console.log('Se enviará a ARCA:', dataForArca);
 
 		const result = await arca.ElectronicBilling.createNextVoucher(dataForArca, false);
+		if(!result.voucherNumber) {
+			return res.status(500).send({ error: error.message || 'Hubo un error en ARCA y no pudo generarse el comprobante.' });
+		}
+		
+		await newVoucher.save();
+		console.log('Comprobante creado y guardado en DB local:', newVoucher);
 
-		res.send(result);
+		res.send(newVoucher);
 	} catch(error) {
 		console.error(error);
 		res.status(500).send({ error: error.message || 'No se pudo crear el comprobante.' });

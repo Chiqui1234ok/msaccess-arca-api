@@ -1,3 +1,3 @@
 import morgan from 'morgan';
 
-export default morgan(':user-agent :method :url :status');
+export default morgan(':date[iso] :user-agent :method :url :status');
