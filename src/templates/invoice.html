@@ -157,32 +157,48 @@
 		<tr class="bill-emitter-row">
 			<td>
 				<div class="bill-type">
-					{{bill.type}}
+					<!-- 👇 Sobre-escritura con un string -->
+					{{ Concepto }}
 				</div>
 				<div class="text-lg text-center">
-					{{emitter.name}}
+					<!-- 👇 Esto llega por una variable de entorno -->
+					{{ emisor }}
 				</div>
-				<p><strong>Razón social:</strong> {{emitter.businessName}}</p>
-				<p><strong>Domicilio Comercial:</strong> {{emitter.address}}</p>
-				<p><strong>Condición Frente al IVA:</strong> {{emitter.ivaCondition}}</p>
+				<p>
+					<strong>Razón social:</strong> {{ emisor.RazonSocial }}
+				</p>
+				<p>
+					<strong>Domicilio Comercial:</strong> {{ emisor.Direccion }}
+				</p>
+				<p>
+					<strong>Condición Frente al IVA:</strong> {{ emisor.CondicionIVA }}
+				</p>
 			</td>
 			<td>
 				<div>
 					<div class="text-lg">
-						{{bill.title}}
+						<!-- Título -->
 					</div>
 					<div class="row">
 						<p class="col-6 margin-b-0">
-							<strong>Punto de Venta: {{bill.salePoint}}</strong>
+							<strong>Punto de Venta: {{ PtoVta }}</strong>
 						</p>
 						<p class="col-6 margin-b-0">
-							<strong>Comp. Nro: {{bill.number}}</strong> 
+							<strong>Comp. Nro: {{ VoucherNumber }}</strong> 
 						</p>
 					</div>
-					<p><strong>Fecha de Emisión:</strong> {{bill.issueDate}}</p>
-					<p><strong>CUIT:</strong> {{emitter.cuit}}</p>
-					<p><strong>Ingresos Brutos:</strong> {{emitter.iibb}}</p>
-					<p><strong>Fecha de Inicio de Actividades:</strong> {{emitter.activityStart}}</p>
+					<p>
+						<strong>Fecha de Emisión:</strong> {{ CbteFch }}
+					</p>
+					<p>
+						<strong>CUIT:</strong> {{ emisor.CUIT }}
+					</p>
+					<p>
+						<strong>Ingresos Brutos:</strong> {{ emisor.IIBB }}
+					</p>
+					<p>
+						<strong>Fecha de Inicio de Actividades:</strong> {{ emisor.inicioDeActividad }}
+					</p>
 				</div>
 			</td>
 		</tr>
@@ -190,13 +206,13 @@
 			<td colspan="2">
 				<div class="row">
 					<p class="col-4 margin-b-0">
-						<strong>Período Facturado Desde: </strong>{{bill.periodFrom}}
+						<strong>Período Facturado Desde: </strong>{{ FchSerDesde }}
 					</p>
 					<p class="col-3 margin-b-0">
-						<strong>Hasta: </strong>{{bill.periodTo}}
+						<strong>Hasta: </strong>{{ FchServHasta }}
 					</p>
 					<p class="col-5 margin-b-0">
-						<strong>Fecha de Vto. para el pago: </strong>{{bill.dueDate}}
+						<strong>Fecha de Vto. para el pago: </strong>{{ FchVtoPago }}
 					</p>
 				</div>
 			</td>
@@ -206,10 +222,10 @@
 				<div>
 					<div class="row">
 						<p class="col-4 margin-b-0">
-							<strong>CUIL/CUIT: </strong>{{client.cuit}}
+							<strong>CUIL/CUIT: </strong>{{ DocNro}}
 						</p>
 						<p class="col-8 margin-b-0">
-							<strong>Apellido y Nombre / Razón social: </strong>{{client.name}}
+							<strong>Apellido y Nombre / Razón social: </strong>{{ RazonSocial }}
 						</p>
 					</div>
 					<div class="row">

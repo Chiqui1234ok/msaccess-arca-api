@@ -8,8 +8,10 @@ import morgan from './config/morgan.js';
 import documents from './routes/documents.js';
 import index from './routes/index.js';
 import iva from './routes/iva.js';
+import pdf from './routes/pdf.js'
 import pos from './routes/pos.js';
 import tributes from './routes/tributes.js';
+import user from './routes/user.js'
 import voucher from './routes/voucher.js';
 import { __invoice } from "./config/paths.js";
 
@@ -35,8 +37,10 @@ app.use(express.static(__invoice));
 app.use('/arca/documents', documents);
 app.use('/', index);
 app.use('/arca/iva', iva);
+app.use('/arca/pdf', pdf);
 app.use('/arca/pos', pos);
 app.use('/arca/tributes', tributes);
+app.use('/user', user);
 app.use('/arca/voucher', voucher);
 
 app.listen(port, () => {

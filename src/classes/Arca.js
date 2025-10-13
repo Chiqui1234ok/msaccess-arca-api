@@ -3,8 +3,9 @@ import Afip from "@afipsdk/afip.js";
 import path from 'path';
 import { fileURLToPath } from "url";
 import Aliquots from "../models/Aliquots.js";
-import Tributes from "../models/Tributes.js";
+// import Tributes from "../models/Tributes.js";
 import Voucher from '../models/Voucher.js'
+import DateFormat from "../helpers/DateFormat.js";
 
 export default class Arca extends Afip {
     constructor() {
@@ -46,15 +47,26 @@ export default class Arca extends Afip {
      */
 
     /**
-     * Calculate the sums for the voucher based on the items provided.
-     * ⚠ This function doesn't support not-taxable items.
+     * Calcula los totales del voucher (neto, con IVA, sin IVA, no gravado)
+     * ⚠ Esta función no soporta ítems no gravables por ley
+     * @param {*} items - items del voucher
+     * @param {*} ImpTrib - suma del importe de cada tributo del voucher
      */
-    calculateVoucherSums(items) {
-        let ImpTotal = 0; // Total amount including IVA
-        let ImpNeto = 0; // Total amount without IVA
-        let ImpIVA = 0; // Total IVA amount
-        for(let i = 0;i < items.length;i++) {
+    calculateVoucherSums(items, ImpTrib) {
+        let ImpTotal = 0; // Total con IVA
+        let ImpNeto = 0; // Total sin IVA
+        let ImpIVA = 0; // Total IVA
+        let ImpTotConc = 0; // Total no gravado (IVA = "-1%"")
+
+        let i = 0;
+        while(i < items.length) {
             const item = items[i];
+            // Si un ítem del voucher no está alcanzado por el IVA (no gravado)
+            // Nos damos cuenta porque el front-end envía el IVA en negativo
+            if(item.IVA < 0) {
+                ImpTotConc += item.Importe * item.Cantidad;
+                continue;
+            }
             // Convert IVA (front-end sends as percentage) to decimal (ex: 0.21 converts to 21). This convertion happens only when front-end sends IVA as percentaje/decimal, otherwise we will keep it intact.
             const IvaValue = items[i].IVA != 0 && items[i].IVA <= 1 ? items[i].IVA * 100 : items[i].IVA;
             const itemWithIva = (item.Importe * item.Cantidad) * (1 + (IvaValue / 100));
@@ -65,8 +77,11 @@ export default class Arca extends Afip {
             ImpNeto += itemWithoutIva;
             // Adds only the IVA value
             ImpIVA += itemWithIva - itemWithoutIva;
+
+            i++;
         }
-        return { ImpTotal, ImpNeto, ImpIVA };
+        ImpTotal += ImpTrib;
+        return { ImpTotal, ImpNeto, ImpIVA, ImpTotConc };
     }
 
     /**
@@ -133,9 +148,8 @@ export default class Arca extends Afip {
         let i = 0;
         while(i < tributes.length) {
             // Skip tributes which aren't defined
-            if(!tributes[i].Alicuota) {
+            if(!tributes[i].Base_Imponible || !tributes[i].Alicuota || !tributes[i].arcaId) {
                 tributes.splice(i, 1);
-                i++;
                 continue;
             }
             const Alicuota = tributes[i].Alicuota != 0 && parseFloat(tributes[i].Alicuota) <= 1 ? parseFloat(tributes[i].Alicuota) : parseFloat(tributes[i].Alicuota) / 100;
@@ -180,35 +194,62 @@ export default class Arca extends Afip {
      * Is useful when you want to check a voucher registered though the API
      */
     async getVoucherFromDb(data) {
-        if(!data.voucherNumber) {
+        if(!data.VoucherNumber) {
             throw new Error('Número de comprobante no definido.');
         }
         if(!data.PtoVta) {
             throw new Error('Punto de venta no definido.');
         }
 
-        const dbVoucher = await dbVoucher.findOne({
+        const result = await Voucher.findOne({
             VoucherNumber: data.VoucherNumber,
             PtoVta: data.PtoVta
         });
 
-        if(dbVoucher) return dbVoucher;
+        if(result) return result;
         else throw new Error('Comprobante no encontrado.');
     }
 
     /**
      * 
-     * @param {*} data - ex: "2025-08-01T03:00:00.000Z" 
+     * @param {*} date - ex: "2025-08-01T03:00:00.000Z" 
+     * @param format - ex: "YMD", "DMY", etc. This uses an ENUM
      * @returns ex: "2025-08-01T03:00:00.000Z" formatted to "20250801" (ARCA uses this format)
      */
-    getArcaDate(date = new Date()) {
-        // Guarantee the date is a Date object
-        date = (date instanceof Date) ? date : new Date(date);
-        const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-        const year = localTime.getFullYear();
-        const month = String(localTime.getMonth() + 1).padStart(2, "0"); // 01~12
-        const day = String(localTime.getDate()).padStart(2, "0");        // 01~31
-        return `${year}${month}${day}`;
+    getArcaDate(date = new Date(), format = DateFormat.YMD) {
+        const d = (date instanceof Date) ? date : new Date(date);
+
+        const localTime = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+        const year = localTime.getFullYear().toString();
+        const month = String(localTime.getMonth() + 1).padStart(2, "0");
+        const day = String(localTime.getDate()).padStart(2, "0");
+
+        // Evaluar el enum usando replace
+        return format
+            .replace("${year}", `${year}`)
+            .replace("${month}", `${month}`)
+            .replace("${day}", day);
+    }
+
+    /**
+     * 
+     * @param {*} date - ex: "2025-08-01T03:00:00.000Z" 
+     * @param format - ex: "YMD", "DMY", etc. This uses an ENUM
+     * @returns ex: "2025-08-01T03:00:00.000Z" formatted to "20250801" (ARCA uses this format)
+     */
+    getAccessDate(date = new Date(), format = DateFormat.YMD) {
+        const d = (date instanceof Date) ? date : new Date(date);
+
+        const localTime = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+        const year = localTime.getFullYear().toString();
+        const month = String(localTime.getMonth() + 1).padStart(2, "0");
+        const day = String(localTime.getDate()).padStart(2, "0");
+
+        // Evaluar el enum usando replace
+        return format
+            .replace("${year}", `${year}/`)
+            .replace("${month}", `${month}/`)
+            .replace("${day}", `${day}`);
     }
 
     /**

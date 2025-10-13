@@ -11,6 +11,7 @@ const tributesSchema = new Schema({
 
 const voucherSchema = new Schema({
   Concepto: { type: Number, required: true },
+  IdClienteEnAccess: { type: String, required: true },
   RazonSocial: { type: String, required: true },
   DocTipo: { type: Number, required: true },
   DocNro: { type: Number, required: true },
@@ -65,8 +66,8 @@ const voucherSchema = new Schema({
 /**
  * Check existence of initial data from front-end
  */
-voucherSchema.methods.validarInput = function(req) {
-  if(!req.FchVtoPago) {
+voucherSchema.methods.validarInput = async function(req) {
+  if( !req.FchVtoPago ) {
       throw new Error('Cuándo se factura por un servicio, se debe especificar el periodo de éste.');
     }
     if( !req.Concepto ) {
@@ -75,17 +76,28 @@ voucherSchema.methods.validarInput = function(req) {
     if( req.Concepto != 1 && ( !req.FchServDesde || !req.FchServHasta) ) {
       throw new Error('Cuándo se factura por un servicio, se debe especificar el periodo de éste.');
     }
-    if(!req.VoucherItems) {
-      res.status(500).send({ error: 'El detalle de la factura (producto(s)/servicio(s) a prestar) es obligatoria.' });
+    if( !req.IdClienteEnAccess || isNaN(req.IdClienteEnAccess) || req.IdClienteEnAccess < 0 || !req.RazonSocial ) {
+      throw new Error('No se indicó el cliente.');
+    }
+    if( !req.DocTipo ) {
+      throw new Error('No se indicó el tipo de documento del cliente.');
+    }
+    if( !req.CondicionIVAReceptorId ) {
+      throw new Error('Es necesario saber la condición del IVA del receptor.');
+    }
+    if( !req.VoucherItems || !Array.isArray(req.VoucherItems) || req.VoucherItems.length == 0 ) {
+      throw new Error('El detalle de la factura (producto(s)/servicio(s) a prestar) es obligatoria.');
     }
 }
+
+
 /**
  * Calculate voucher's final amounts.
  */
-voucherSchema.methods.calcularSumasDelVoucher = function(items) {
+voucherSchema.methods.calcularSumasDelVoucher = function(items, ImpTrib) {
   if(!items || !Array.isArray(items) || items.length == 0) throw new Error('No se especificó ninguna alícuota.');
   const arca = new Arca();
-  const { ImpTotal, ImpNeto, ImpIVA } = arca.calculateVoucherSums(items);
+  const { ImpTotal, ImpNeto, ImpIVA } = arca.calculateVoucherSums(items, ImpTrib);
   this.ImpTotal = ImpTotal;
   this.ImpNeto = ImpNeto;
   this.ImpIVA = ImpIVA;

@@ -2,6 +2,8 @@ import express from "express";
 import Arca from "../classes/Arca.js";
 import Voucher from "../models/Voucher.js";
 import { IvaModel } from "../models/Iva.js";
+import DateFormat from "../helpers/DateFormat.js";
+import { auth } from "../helpers/Auth.js";
 
 const router = express.Router();
 
@@ -38,24 +40,25 @@ router.post('/', async (req, res) => {
  * Create a new voucher
  * Note: a voucher can be a Factura A, Factura B, Nota de Débito A, Nota de Crédito B, etc.
  */
-router.post('/new', async (req, res) => {
+router.post('/new', auth, async (req, res) => {
 	try {
 		const { PtoVta, VoucherItems, VoucherTributos } = req.body;		
 
 		console.log('Lo que llega de Access:', req.body);
 
 		const arca = new Arca();
-		const newVoucher = new Voucher(req.body);
-		newVoucher.validarInput(req.body);
 
-		// 🏁 Cálculo de datos básicos
+		const newVoucher = new Voucher(req.body);
+		await newVoucher.validarInput(req.body);
+
+		// 1. Cálculo de datos básicos
 		newVoucher.PtoVta = process.env.MS_ACCESS_WEBAPP_NODE_ENV == 'dev' ? 1 : PtoVta;
 		newVoucher.calcularFechasArca();	
 
-		// 🏁 Cálculo de alícuotas de IVA
+		// 2. Cálculo de alícuotas de IVA
 		newVoucher.Iva = await IvaModel.calcularArray(VoucherItems);
 
-		// 🏁 Cálculo de tributos
+		// 3. Cálculo de tributos
 		if(VoucherTributos) {
 			const Tributos = await arca.setTributesArray(VoucherTributos);
 			// Se escriben los Tributos sólo
@@ -63,9 +66,8 @@ router.post('/new', async (req, res) => {
 		}
 		newVoucher.ImpTrib = newVoucher.Tributos ? newVoucher.Tributos.reduce((resultado, Tributo) => resultado + Number(Tributo.Importe || 0), 0) : 0;
 
-		// Cálculo de sumas/totales del voucher
-		newVoucher.calcularSumasDelVoucher(VoucherItems);
-		console.log('ImpIVA', newVoucher.ImpIVA);
+		// 4. Cálculo de sumas/totales del voucher
+		newVoucher.calcularSumasDelVoucher(VoucherItems, newVoucher.ImpTrib);
 
 		let dataForArca = newVoucher.toObject();
 		dataForArca.CantReg = 1;
@@ -76,14 +78,33 @@ router.post('/new', async (req, res) => {
 		if(!result.voucherNumber) {
 			return res.status(500).send({ error: error.message || 'Hubo un error en ARCA y no pudo generarse el comprobante.' });
 		}
-		
+
+		newVoucher.VoucherNumber = result.voucherNumber;
+		newVoucher.CAE = result.CAE;
+		newVoucher.CAEFchVto = result.CAEFchVto;
+
 		await newVoucher.save();
 		console.log('Comprobante creado y guardado en DB local:', newVoucher);
 
-		res.send(newVoucher);
+		// Se devuelven los campos requeridos para que el front-end (Microsoft Access) añada el registro a su base de datos
+		const CbteFch = arca.getAccessDate( new Date(req.body.CbteFch), DateFormat.DMY );
+		console.log('CbteFch', CbteFch);
+		const FchVtoPago = arca.geAccessDate( new Date(req.body.FchVtoPago), DateFormat.DMY );
+		// Se construye la URL 👇
+		const baseUrl = process.env.MS_ACCESS_WEBAPP_NODE_ENV === 'prod' ? process.env.MS_ACCESS_WEBAPP_API_BASE_URL_PROD : process.env.MS_ACCESS_WEBAPP_API_BASE_URL_DEV;
+		const PDFUrl = `${baseUrl}/arca/pdf/${newVoucher.PtoVta}/${newVoucher.VoucherNumber}`;
+		// Se envía a front-end 👇
+		res.send({
+			N_FACTURA: result.voucherNumber,
+			FECHA: CbteFch,
+			IMPORTE: newVoucher.ImpTotal,
+			FECHA_DE_VENCIMIENTO: FchVtoPago,
+			VER_FACTURA: PDFUrl, // la URL es una ruta POST de la API porque el PDF se genera en el momento
+			idCliente: newVoucher.IdClienteEnAccess
+		});
 	} catch(error) {
 		console.error(error);
-		res.status(500).send({ error: error.message || 'No se pudo crear el comprobante.' });
+		res.status(500).json(error.message || 'No se pudo crear el comprobante.');
 	}
 });
 
@@ -95,15 +116,6 @@ router.get('/conceptTypes', async (req, res) => {
 	const arca = new Arca();
 	const result = await arca.ElectronicBilling.getConceptTypes();
 	res.send(result);
-});
-
-/**
- * Fetch a voucher in DB with voucher_number and PtoVta, then generate and return its PDF
- */
-router.post('/pdf', async (req, res) => {
-	const { voucher_number, PtoVta } = req.body;
-	const arca = new Arca();
-	
 });
 
 export default router;
