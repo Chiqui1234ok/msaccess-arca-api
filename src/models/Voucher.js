@@ -56,7 +56,7 @@ const voucherSchema = new Schema({
   // FchProceso: { type: String, required: true },
   PtoVta: { type: Number, required: true },
   CbteTipo: { type: Number, required: true },
-  VoucherNumber: { type: Number },
+  VoucherNumber: { type: Number }, // This shouldn't be required? TODO
   CAE: { type: String },
   CAEFchVto: { type: String }
 }, {

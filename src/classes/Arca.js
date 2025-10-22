@@ -200,7 +200,10 @@ export default class Arca extends Afip {
         if(!data.PtoVta) {
             throw new Error('Punto de venta no definido.');
         }
-
+        if(process.env.MS_ACCESS_WEBAPP_NODE_ENV == 'dev') {
+            console.log(`Se busca en base de datos el voucher ${data.PtoVta}-${data.VoucherNumber}`);
+        }
+        
         const result = await Voucher.findOne({
             VoucherNumber: data.VoucherNumber,
             PtoVta: data.PtoVta
@@ -261,5 +264,17 @@ export default class Arca extends Afip {
         const value = String(percentage).trim().replace('%', '');
         const Desc = parseFloat(value);
         return Aliquots.findOne({ Desc });
+    }
+
+    /**
+     * 
+     * @param {*} id 
+     * @returns id (number) transformed to string with real meaning
+     */
+    getConceptoById(id) {
+        // TODO
+        //
+        //
+        return id;
     }
 }

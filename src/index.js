@@ -22,7 +22,7 @@ const port = parseInt(process.env.MS_ACCESS_WEBAPP_PORT);
 const app = express();
 
 // Connect with database
-db.connect();
+await db.connect();
 
 // Call morgan for logging
 app.use(morgan);

@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
 		const aux = result;
 		result = [];
 		result.push(aux.find(a => a.Id == id)); // front-end expects an array
-		if(!result) res.status(404).send({ error: 'Tipo de comprobante no encontrado.' });
+		if(!result) return res.status(404).send({ error: 'Tipo de comprobante no encontrado.' });
 	}
 	res.send(result);
 });
@@ -104,7 +104,7 @@ router.post('/new', auth, async (req, res) => {
 		});
 	} catch(error) {
 		console.error(error);
-		res.status(500).json(error.message || 'No se pudo crear el comprobante.');
+		return res.status(500).json(error.message || 'No se pudo crear el comprobante.');
 	}
 });
 

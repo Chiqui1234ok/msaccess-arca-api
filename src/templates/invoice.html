@@ -158,11 +158,11 @@
 			<td>
 				<div class="bill-type">
 					<!-- 👇 Sobre-escritura con un string -->
-					{{ Concepto }}
+					{{ voucher.Concepto }}
 				</div>
 				<div class="text-lg text-center">
 					<!-- 👇 Esto llega por una variable de entorno -->
-					{{ emisor }}
+					{{ emisor.RazonSocial }}
 				</div>
 				<p>
 					<strong>Razón social:</strong> {{ emisor.RazonSocial }}
@@ -181,14 +181,14 @@
 					</div>
 					<div class="row">
 						<p class="col-6 margin-b-0">
-							<strong>Punto de Venta: {{ PtoVta }}</strong>
+							<strong>Punto de Venta: {{ voucher.PtoVta }}</strong>
 						</p>
 						<p class="col-6 margin-b-0">
-							<strong>Comp. Nro: {{ VoucherNumber }}</strong> 
+							<strong>Comp. Nro: {{ voucher.VoucherNumber }}</strong> 
 						</p>
 					</div>
 					<p>
-						<strong>Fecha de Emisión:</strong> {{ CbteFch }}
+						<strong>Fecha de Emisión:</strong> {{ voucher.CbteFch }}
 					</p>
 					<p>
 						<strong>CUIT:</strong> {{ emisor.CUIT }}
@@ -197,7 +197,7 @@
 						<strong>Ingresos Brutos:</strong> {{ emisor.IIBB }}
 					</p>
 					<p>
-						<strong>Fecha de Inicio de Actividades:</strong> {{ emisor.inicioDeActividad }}
+						<strong>Fecha de Inicio de Actividades:</strong> {{ emisor.InicioDeActividad }}
 					</p>
 				</div>
 			</td>
@@ -206,13 +206,13 @@
 			<td colspan="2">
 				<div class="row">
 					<p class="col-4 margin-b-0">
-						<strong>Período Facturado Desde: </strong>{{ FchSerDesde }}
+						<strong>Período Facturado Desde: </strong>{{ voucher.FchServDesde }}
 					</p>
 					<p class="col-3 margin-b-0">
-						<strong>Hasta: </strong>{{ FchServHasta }}
+						<strong>Hasta: </strong>{{ voucher.FchServHasta }}
 					</p>
 					<p class="col-5 margin-b-0">
-						<strong>Fecha de Vto. para el pago: </strong>{{ FchVtoPago }}
+						<strong>Fecha de Vto. para el pago: </strong>{{ voucher.FchVtoPago }}
 					</p>
 				</div>
 			</td>
@@ -222,27 +222,27 @@
 				<div>
 					<div class="row">
 						<p class="col-4 margin-b-0">
-							<strong>CUIL/CUIT: </strong>{{ DocNro}}
+							<strong>CUIL/CUIT: </strong>{{ receptor.DocNro }}
 						</p>
 						<p class="col-8 margin-b-0">
-							<strong>Apellido y Nombre / Razón social: </strong>{{ RazonSocial }}
+							<strong>Apellido y Nombre / Razón social: </strong>{{ receptor.RazonSocial }}
 						</p>
 					</div>
-					<div class="row">
+					<!-- <div class="row">
 						<p class="col-6 margin-b-0">
-							<strong>Condición Frente al IVA: </strong>{{client.ivaCondition}}
+							<strong>Condición Frente al IVA: </strong>{{ receptor.CondicionIVAReceptorId }}
 						</p>
 						<p class="col-6 margin-b-0">
 							<strong>Domicilio: </strong>{{client.address}}
 						</p>
-					</div>
-					<p>
+					</div> -->
+					<!-- <p>
 						<strong>Condicion de venta: </strong>{{bill.paymentCondition}}
-					</p>
+					</p> -->
 				</div>
 			</td>
 		</tr>
-		<tr class="bill-row row-details">
+		<!-- <tr class="bill-row row-details">
 			<td colspan="2">
 				<div>
 					<table>
@@ -256,7 +256,7 @@
 							<td>Imp. Bonif.</td>
 							<td>Subtotal</td>
 						</tr>
-						{{#each items}}
+						{{#each itemsIva}}
 							<tr>
 								<td>{{code}}</td>
 								<td>{{description}}</td>
@@ -271,16 +271,16 @@
 					</table>
 				</div>
 			</td>
-		</tr>
+		</tr> -->
 		<tr class="bill-row total-row">
 			<td colspan="2">
 				<div>
 					<div class="row text-right">
 						<p class="col-10 margin-b-0">
-							<strong>Subtotal: $</strong>
+							<strong>Importe IVA: $</strong>
 						</p>
 						<p class="col-2 margin-b-0">
-							<strong>{{totals.subtotal}}</strong>
+							<strong>{{voucher.ImpIVA}}</strong>
 						</p>
 					</div>
 					<div class="row text-right">
@@ -288,7 +288,7 @@
 							<strong>Importe Otros Tributos: $</strong>
 						</p>
 						<p class="col-2 margin-b-0">
-							<strong>{{totals.others}}</strong>
+							<strong>{{voucher.ImpTrib}}</strong>
 						</p>
 					</div>
 					<div class="row text-right">
@@ -296,7 +296,7 @@
 							<strong>Importe total: $</strong>
 						</p>
 						<p class="col-2 margin-b-0">
-							<strong>{{totals.total}}</strong>
+							<strong>{{voucher.ImpTotal}}</strong>
 						</p>
 					</div>
 				</div>

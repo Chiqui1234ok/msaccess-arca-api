@@ -7,7 +7,7 @@ router.post('/login', async (req, res) => {
         const { username, password } = req.body;
         
         if(!username || !password) {
-            res.status(400).send({ error: `Se debe especificar el usuario y contraseña` });
+            return res.status(400).send({ error: `Se debe especificar el usuario y contraseña` });
         }
 
         const user = await User.findOne({ username });
@@ -16,11 +16,11 @@ router.post('/login', async (req, res) => {
             user.signJWT();
             await user.save();
         } else {
-            res.status(400).send({ error: `La contraseña para el usuario ${username} no es correcta.` });
+            return res.status(400).send({ error: `La contraseña para el usuario ${username} no es correcta.` });
         }
         res.send(user.jsonwebtoken);
     } catch(error) {
-        res.status(500).send({ error: error.message || 'Hay un problema en el servidor. Reportalo al administrador del sistema.' });
+        return res.status(500).send({ error: error.message || 'Hay un problema en el servidor. Reportalo al administrador del sistema.' });
     }
 });
 
@@ -40,7 +40,7 @@ router.post('/register', async (req, res) => {
             throw new Error(`El usuario ${username} no pudo crearse.`);
         }
     } catch(error) {
-        res.status(500).send({ error: error.message || 'Hay un problema en el servidor. Reportalo al administrador del sistema.' });
+        return res.status(500).send({ error: error.message || 'Hay un problema en el servidor. Reportalo al administrador del sistema.' });
     }
 })
 
