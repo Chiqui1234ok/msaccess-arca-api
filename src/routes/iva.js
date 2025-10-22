@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
         res.send(result);
     } catch (error) {
         console.error(error);
-        res.status(500).send({ msg: 'No se pudieron devolver los tipos de alicuotas' });
+        return res.status(500).send({ msg: 'No se pudieron devolver los tipos de alicuotas' });
     }
 });
 
