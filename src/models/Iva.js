@@ -1,5 +1,5 @@
 import { model, Schema } from 'mongoose'
-import Aliquots from './Aliquots.js';
+import AliquotsSchema from './Aliquots.js';
 
 const IvaSchema = new Schema({
   Id: { type: Number, required: true },
@@ -14,7 +14,7 @@ IvaSchema.statics.calcularArray = async function(alicuotas) {
             const IvaValue = alicuotas[i].IVA != 0 && alicuotas[i].IVA <= 1 ? alicuotas[i].IVA * 100 : alicuotas[i].IVA;
 
             const IvaItem = {
-                Id: await Aliquots.findOne({ Desc: IvaValue }).then(result => result ? result.Id : null),
+                Id: await AliquotsSchema.findOne({ Desc: IvaValue }).then(result => result ? result.Id : null),
                 BaseImp: alicuotas[i].Importe * alicuotas[i].Cantidad,
                 Importe: (alicuotas[i].Importe * alicuotas[i].Cantidad) * (IvaValue / 100)
             };

@@ -2,7 +2,7 @@ import fs from "fs";
 import Afip from "@afipsdk/afip.js";
 import path from 'path';
 import { fileURLToPath } from "url";
-import Aliquots from "../models/Aliquots.js";
+import AliquotsSchema from "../models/Aliquots.js";
 // import Tributes from "../models/Tributes.js";
 import Voucher from '../models/Voucher.js'
 import DateFormat from "../helpers/DateFormat.js";
@@ -106,7 +106,7 @@ export default class Arca extends Afip {
             const IvaValue = items[i].IVA != 0 && items[i].IVA <= 1 ? items[i].IVA * 100 : items[i].IVA;
 
             const IvaItem = {
-                Id: await Aliquots.findOne({ Desc: IvaValue }).then(result => result ? result.Id : null),
+                Id: await AliquotsSchema.findOne({ Desc: IvaValue }).then(result => result ? result.Id : null),
                 BaseImp: items[i].Importe * items[i].Cantidad,
                 Importe: (items[i].Importe * items[i].Cantidad) * (IvaValue / 100)
             };
@@ -264,7 +264,7 @@ export default class Arca extends Afip {
         // This replace is in case the user sends "21%" instead of "21". We store it as a number.
         const value = String(percentage).trim().replace('%', '');
         const Desc = parseFloat(value);
-        return Aliquots.findOne({ Desc });
+        return AliquotsSchema.findOne({ Desc });
     }
 
     /**
