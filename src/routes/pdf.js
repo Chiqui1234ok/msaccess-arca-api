@@ -21,12 +21,12 @@ router.get('/:PtoVta/:VoucherNumber', async(req, res) => {
             return res.status(400).send({ error: 'El número de comprobante es inválido. '});
         }
 
-        const RazonSocial = process.env.MS_ACCESS_WEBAPP_RAZON_SOCIAL;
-        const Direccion = process.env.MS_ACCESS_WEBAPP_DIRECCION;
-        const CondicionIVA = process.env.MS_ACCESS_WEBAPP_COND_IVA;
-        const CUIT = process.env.MS_ACCESS_WEBAPP_CUIT;
-        const IIBB = process.env.MS_ACCESS_WEBAPP_IIBB;
-        const InicioDeActividad = process.env.MS_ACCESS_WEBAPP_INICIO_ACTIVIDAD;
+        const RazonSocial = process.env.MS_ACCESS_WEBAPP_RAZON_SOCIAL_PDF;
+        const Direccion = process.env.MS_ACCESS_WEBAPP_DIRECCION_PDF;
+        const CondicionIVA = process.env.MS_ACCESS_WEBAPP_COND_IVA_PDF;
+        const CUIT = process.env.MS_ACCESS_WEBAPP_CUIT_PDF;
+        const IIBB = process.env.MS_ACCESS_WEBAPP_IIBB_PDF;
+        const InicioDeActividad = process.env.MS_ACCESS_WEBAPP_INICIO_ACTIVIDAD_PDF;
 
         if(!RazonSocial) {
             throw new Error(`Se debe especificar la Razón social del emisor de la factura.`);

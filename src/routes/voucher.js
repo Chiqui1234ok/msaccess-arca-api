@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
  * Create a new voucher
  * Note: a voucher can be a Factura A, Factura B, Nota de Débito A, Nota de Crédito B, etc.
  */
-router.post('/new', auth, async (req, res) => {
+router.post('/new', async (req, res) => {
 	try {
 		const { PtoVta, VoucherItems, VoucherTributos } = req.body;		
 
