@@ -3,7 +3,7 @@ import Arca from '../classes/Arca.js';
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/pos', async (req, res) => {
     const arca = new Arca();
     const result = await arca.ElectronicBilling.getSalesPoints();
     res.send(result);

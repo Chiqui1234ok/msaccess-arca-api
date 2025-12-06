@@ -34,14 +34,14 @@ app.use(express.json());
 app.use(express.static(__invoice));
 
 // Routes
-app.use('/arca/documents', documents);
+app.use('/arca', documents);
 app.use('/', index);
-app.use('/arca/iva', iva);
-app.use('/arca/pdf', pdf);
-app.use('/arca/pos', pos);
-app.use('/arca/tributes', tributes);
+app.use('/arca', iva);
+app.use('/arca', pdf);
+app.use('/arca', pos);
+app.use('/arca', tributes);
 app.use('/user', user);
-app.use('/arca/voucher', voucher);
+app.use('/arca', voucher);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

@@ -3,7 +3,7 @@ import Arca from "../classes/Arca.js";
 import Voucher from "../models/Voucher.js";
 import { IvaModel } from "../models/Iva.js";
 import DateFormat from "../helpers/DateFormat.js";
-import { auth } from "../helpers/Auth.js";
+import ConceptTypes from '../classes/ConceptTypes.js'
 
 const router = express.Router();
 
@@ -11,7 +11,7 @@ const router = express.Router();
  * Retrieve voucher types (TODO: we need to store all these types in a DB collection + optimization)
  * Example: Factura A, Factura B, Nota de Débito A, Nota de Crédito B, etc.
  */
-router.get('/', async (req, res) => {
+router.get('/voucher', async (req, res) => {
 	const arca = new Arca();
 	const { id } = req.query;
 	// Retrieve all voucher types
@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
 /**
  * Retrieve specific voucher already registered in ARCA
  */
-router.post('/', async (req, res) => {
+router.post('/voucher', async (req, res) => {
 	const { voucher_number, PtoVta, CbteTipo } = req.body;
 	const arca = new Arca();
 	const result = await arca.getVoucher({ voucher_number, PtoVta, CbteTipo });
@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
  * Create a new voucher
  * Note: a voucher can be a Factura A, Factura B, Nota de Débito A, Nota de Crédito B, etc.
  */
-router.post('/new', async (req, res) => {
+router.post('/voucher/new', async (req, res) => {
 	try {
 		const { PtoVta, VoucherItems, VoucherTributos } = req.body;		
 
@@ -87,9 +87,10 @@ router.post('/new', async (req, res) => {
 		console.log('Comprobante creado y guardado en DB local:', newVoucher);
 
 		// Se devuelven los campos requeridos para que el front-end (Microsoft Access) añada el registro a su base de datos
-		const CbteFch = arca.getAccessDate( new Date(req.body.CbteFch), DateFormat.DMY );
+		const today = new Date().toISOString();
+		const CbteFch = arca.getAccessDate( today, DateFormat.DMY );
 		console.log('CbteFch', CbteFch);
-		const FchVtoPago = arca.geAccessDate( new Date(req.body.FchVtoPago), DateFormat.DMY );
+		const FchVtoPago = arca.getAccessDate( new Date(req.body.FchVtoPago), DateFormat.DMY );
 		// Se construye la URL 👇
 		const baseUrl = process.env.MS_ACCESS_WEBAPP_NODE_ENV === 'prod' ? process.env.MS_ACCESS_WEBAPP_API_BASE_URL_PROD : process.env.MS_ACCESS_WEBAPP_API_BASE_URL_DEV;
 		const PDFUrl = `${baseUrl}/arca/pdf/${newVoucher.PtoVta}/${newVoucher.VoucherNumber}`;
@@ -112,9 +113,8 @@ router.post('/new', async (req, res) => {
  * Retrieves concept types for the voucher
  * Example: Productos, Servicios, Productos y Servicios
  */
-router.get('/conceptTypes', async (req, res) => {
-	const arca = new Arca();
-	const result = await arca.ElectronicBilling.getConceptTypes();
+router.get('/voucher/conceptTypes', async (req, res) => {
+	const result = await ConceptTypes.get();
 	res.send(result);
 });
 

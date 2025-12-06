@@ -18,6 +18,11 @@ IvaSchema.statics.calcularArray = async function(alicuotas) {
                 BaseImp: alicuotas[i].Importe * alicuotas[i].Cantidad,
                 Importe: (alicuotas[i].Importe * alicuotas[i].Cantidad) * (IvaValue / 100)
             };
+            if(process.env.MS_ACCESS_WEBAPP_NODE_ENV == 'dev') {
+                console.log('models/Iva.js');
+                console.log('IvaValue', IvaValue);
+                console.log('IvaItem', IvaItem);
+            }
             if(!IvaItem.Id) {
                 throw new Error(`Indicaste un tipo de IVA incorrecto: "${alicuotas[i].IVA}"`);
             }

@@ -11,11 +11,11 @@ class Aliquots {
      */
     static async get() {
         let result = await AliquotsSchema.find();
-
+        
         // Returns DB if we have anything
         if(result.length > 0) return result;
 
-        // Otherwise, we need to fetch this data from ARCA        
+        // Otherwise, we need to fetch this data from ARCA
         return await Aliquots.getFromArca();
     }
 
@@ -37,7 +37,7 @@ class Aliquots {
         });
         await AliquotsSchema.deleteMany({}); // Clear previous entries (could be garbage data)
         result = await AliquotsSchema.insertMany(result);
-
+        console.log('getFromArca', result);
         return result;
     }
 }

@@ -1,14 +1,12 @@
 import express from 'express';
-import Arca from '../classes/Arca.js';
 import { Pdf } from '../classes/Pdf.js';
-import { auth } from '../helpers/Auth.js';
 
 const router = express.Router();
 
 /**
  * Fetch a voucher in DB with voucher_number and PtoVta, then generate and return its PDF
  */
-router.get('/:PtoVta/:VoucherNumber', async(req, res) => {
+router.get('/pdf/:PtoVta/:VoucherNumber', async(req, res) => {
     try {
         const { PtoVta, VoucherNumber } = req.params;
         const pdf = new Pdf();

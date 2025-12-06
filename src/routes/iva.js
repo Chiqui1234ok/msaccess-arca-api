@@ -1,6 +1,7 @@
 import express from "express";
-import Arca from "../classes/Arca.js";
 import Aliquots from "../classes/Aliquots.js";
+import IvaConditionTypes from "../classes/IvaConditionTypes.js";
+import Arca from "../classes/Arca.js";
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ const router = express.Router();
  * Example: 21%, 10.5%, Exento, etc. (Without '%')
  * If no aliquots are found in the database, it fetches them from ARCA and stores them.
  */
-router.get('/', async (req, res) => {
+router.get('/iva', async (req, res) => {
     try {
         const result = await Aliquots.get();
         res.send(result);
@@ -23,10 +24,8 @@ router.get('/', async (req, res) => {
  * Retrieves condition types for the voucher receiver
  * Example: IVA Responsable Inscripto, Responsable Monotributo, etc.
  */
-router.get('/conditionTypes', async (req, res) => {
-    const arca = new Arca();
-    let result =  await arca.ElectronicBilling.executeRequest('FEParamGetCondicionIvaReceptor');
-    result = result.ResultGet.CondicionIvaReceptor ? result.ResultGet.CondicionIvaReceptor : {};
+router.get('/iva/conditionTypes', async (req, res) => {
+    let result = await IvaConditionTypes.get();
     res.send(result);
 });
 

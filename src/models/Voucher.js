@@ -68,7 +68,7 @@ const voucherSchema = new Schema({
  */
 voucherSchema.methods.validarInput = async function(req) {
   if( !req.FchVtoPago ) {
-      throw new Error('Cuándo se factura por un servicio, se debe especificar el periodo de éste.');
+      throw new Error('Se debe especificar la fecha de vencimiento del pago.');
     }
     if( !req.Concepto ) {
       throw new Error('Se debe indicar si la factura es por un Producto, Servicio o ambos.');

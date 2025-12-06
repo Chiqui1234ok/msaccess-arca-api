@@ -4,7 +4,7 @@ import Tributes from "../models/Tributes.js";
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/tributes', async (req, res) => {
     try {
         const arca = new Arca();
         let result = await Tributes.find();
