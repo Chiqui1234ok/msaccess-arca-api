@@ -9,28 +9,43 @@ import DateFormat from "../helpers/DateFormat.js";
 
 export default class Arca extends Afip {
     constructor() {
+        const dev = process.env.MS_ACCESS_WEBAPP_NODE_ENV === 'dev' ? true : false;
+        const envVars = {
+            cuit: dev ? process.env.MS_ACCESS_WEBAPP_ARCA_CUIT_DEV || '' : process.env.MS_ACCESS_WEBAPP_ARCA_CUIT_PROD,
+            certKeyLocation: dev ? process.env.MS_ACCESS_WEBAPP_ARCA_CERT_PRIV_DEV : process.env.MS_ACCESS_WEBAPP_ARCA_CERT_PRIV_PROD,
+            certLocation: dev ? process.env.MS_ACCESS_WEBAPP_ARCA_CERT_PUB_DEV : process.env.MS_ACCESS_WEBAPP_ARCA_CERT_PUB_PROD,
+        }
+
+        const keyUrl = fileURLToPath(new URL(envVars.certKeyLocation, import.meta.url));
         const key = fs.readFileSync(
-            path.resolve(fileURLToPath(new URL('../../.arca/dev-santiago/priv.key', import.meta.url))),
+            path.resolve(keyUrl),
             'utf8'
         );
 
+        const certUrl = fileURLToPath(new URL(envVars.certLocation, import.meta.url));
         const cert = fs.readFileSync(
-            path.resolve(fileURLToPath(new URL('../../.arca/dev-santiago/pub.crt', import.meta.url))),
+            path.resolve(certUrl),
             'utf8'
         );
-        
-        const CUIT = parseInt(process.env.MS_ACCESS_WEBAPP_ARCA_CUIT_DEV || '');
+
+        const CUIT = parseInt(envVars.cuit);
 
         if(!key) throw new Error('Clave privada no definida.');
         if(!cert) throw new Error('Certificado público no definido.');
         if(!CUIT) throw new Error('CUIT no definido.');
 
+        if(dev) {
+            console.log(`Ruta de la clave: ${keyUrl} .`);
+            console.log(`Ruta del certificado: ${certUrl} .`);
+            console.log(`PDF configurado para la razón social: ${process.env.MS_ACCESS_WEBAPP_RAZON_SOCIAL_PDF} (${process.env.MS_ACCESS_WEBAPP_CUIT_PDF}) .`);
+        }
+
         // Call parent constructor with credentials
         super({
             key,
             cert,
-            access_token: process.env.MS_ACCESS_WEBAPP_ARCA_ACCESS_TOKEN,
             CUIT,
+            access_token: process.env.MS_ACCESS_WEBAPP_ARCA_ACCESS_TOKEN,
             production: process.env.MS_ACCESS_WEBAPP_NODE_ENV === 'prod'
         });
     }
