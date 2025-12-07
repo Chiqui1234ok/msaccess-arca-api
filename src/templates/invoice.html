@@ -242,7 +242,7 @@
 				</div>
 			</td>
 		</tr>
-		<!-- <tr class="bill-row row-details">
+		<tr class="bill-row row-details">
 			<td colspan="2">
 				<div>
 					<table>
@@ -251,27 +251,23 @@
 							<td>Producto / Servicio</td>
 							<td>Cantidad</td>
 							<td>U. Medida</td>
-							<td>Precio Unit.</td>
-							<td>% Bonif.</td>
-							<td>Imp. Bonif.</td>
-							<td>Subtotal</td>
+							<td>Importe</td>
+							<td>IVA</td>
 						</tr>
-						{{#each itemsIva}}
+						{{#each voucher.Iva}}
 							<tr>
-								<td>{{code}}</td>
-								<td>{{description}}</td>
-								<td>{{quantity}}</td>
-								<td>{{unit}}</td>
-								<td>{{price}}</td>
-								<td>{{discountPercent}}</td>
-								<td>{{discountAmount}}</td>
-								<td>{{subtotal}}</td>
+								<td>-</td>
+								<td>{{ Desc }}</td>
+								<td>{{ Cantidad }}</td>
+								<td>Unidades</td>
+								<td>{{ Importe }}</td>
+								<td>No soportado</td>
 							</tr>
 						{{/each}}
 					</table>
 				</div>
 			</td>
-		</tr> -->
+		</tr>
 		<tr class="bill-row total-row">
 			<td colspan="2">
 				<div>
