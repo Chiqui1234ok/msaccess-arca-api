@@ -4,6 +4,9 @@ import Voucher from "../models/Voucher.js";
 import { IvaModel } from "../models/Iva.js";
 import DateFormat from "../helpers/DateFormat.js";
 import ConceptTypes from '../classes/ConceptTypes.js'
+import IvaAliquots from "../classes/IvaAliquots.js";
+import MsAccess from '../classes/MsAccess.js'
+import DateFormatSlashes from "../helpers/DateFormatSlashes.js";
 
 const router = express.Router();
 
@@ -48,60 +51,67 @@ router.post('/voucher/new', async (req, res) => {
 
 		const arca = new Arca();
 
-		const newVoucher = new Voucher(req.body);
-		await newVoucher.validarInput(req.body);
+		const voucherForDb = new Voucher(req.body);
+		await voucherForDb.validarInput(req.body);
 
 		// 1. Cálculo de datos básicos
-		newVoucher.PtoVta = process.env.MS_ACCESS_WEBAPP_NODE_ENV == 'dev' ? 1 : PtoVta;
-		newVoucher.calcularFechasArca();	
+		voucherForDb.PtoVta = process.env.MS_ACCESS_WEBAPP_NODE_ENV == 'dev' ? 1 : PtoVta;
+		voucherForDb.calcularFechasArca();	
 
 		// 2. Cálculo de alícuotas de IVA
-		newVoucher.Iva = await IvaModel.calcularArray(VoucherItems);
+		voucherForDb.Iva = await IvaAliquots.calcularArray(VoucherItems);
 
 		// 3. Cálculo de tributos
 		if(VoucherTributos) {
 			const Tributos = await arca.setTributesArray(VoucherTributos);
 			// Se escriben los Tributos sólo
-			if(Tributos.length > 0)	newVoucher.Tributos = Tributos;
+			if(Tributos.length > 0)	voucherForDb.Tributos = Tributos;
 		}
-		newVoucher.ImpTrib = newVoucher.Tributos ? newVoucher.Tributos.reduce((resultado, Tributo) => resultado + Number(Tributo.Importe || 0), 0) : 0;
+		voucherForDb.ImpTrib = voucherForDb.Tributos ? voucherForDb.Tributos.reduce((resultado, Tributo) => resultado + Number(Tributo.Importe || 0), 0) : 0;
 
 		// 4. Cálculo de sumas/totales del voucher
-		newVoucher.calcularSumasDelVoucher(VoucherItems, newVoucher.ImpTrib);
+		voucherForDb.calcularSumasDelVoucher(VoucherItems, voucherForDb.ImpTrib);
 
-		let dataForArca = newVoucher.toObject();
-		dataForArca.CantReg = 1;
+		let voucherForArca = voucherForDb.toObject();
+		voucherForArca.CantReg = 1;
+		// Removes "Desc", because ARCA will not accept this
+		voucherForArca.Iva.forEach(obj => {
+			delete obj.Desc;
+		});
+		voucherForArca.Tributos.forEach(obj => {
+			delete obj.Desc;
+		});
 
-		console.log('Se enviará a ARCA:', dataForArca);
+		console.log('Se enviará a ARCA:', voucherForArca);
 
-		const result = await arca.ElectronicBilling.createNextVoucher(dataForArca, false);
+		const result = await arca.ElectronicBilling.createNextVoucher(voucherForArca, false);
 		if(!result.voucherNumber) {
 			return res.status(500).send({ error: error.message || 'Hubo un error en ARCA y no pudo generarse el comprobante.' });
 		}
 
-		newVoucher.VoucherNumber = result.voucherNumber;
-		newVoucher.CAE = result.CAE;
-		newVoucher.CAEFchVto = result.CAEFchVto;
+		voucherForDb.VoucherNumber = result.voucherNumber;
+		voucherForDb.CAE = result.CAE;
+		voucherForDb.CAEFchVto = result.CAEFchVto;
 
-		await newVoucher.save();
-		console.log('Comprobante creado y guardado en DB local:', newVoucher);
+		await voucherForDb.save();
+		console.log('Comprobante creado y guardado en DB local:', voucherForDb);
 
 		// Se devuelven los campos requeridos para que el front-end (Microsoft Access) añada el registro a su base de datos
-		const today = new Date().toISOString();
-		const CbteFch = arca.getAccessDate( today, DateFormat.DMY );
-		console.log('CbteFch', CbteFch);
-		const FchVtoPago = arca.getAccessDate( new Date(req.body.FchVtoPago), DateFormat.DMY );
+		const CbteFch = MsAccess.getDate(new Date(), DateFormatSlashes.DMY );
+		const FchVtoPago = MsAccess.getDate( new Date(req.body.FchVtoPago), DateFormatSlashes.DMY );
+		console.log('CbteFch:', CbteFch);
+		console.log('FchVtoPago', FchVtoPago);
+
 		// Se construye la URL 👇
-		const baseUrl = process.env.MS_ACCESS_WEBAPP_NODE_ENV === 'prod' ? process.env.MS_ACCESS_WEBAPP_API_BASE_URL_PROD : process.env.MS_ACCESS_WEBAPP_API_BASE_URL_DEV;
-		const PDFUrl = `${baseUrl}/arca/pdf/${newVoucher.PtoVta}/${newVoucher.VoucherNumber}`;
+		const PDFUrl = MsAccess.getPdfUrl(voucherForDb.PtoVta, voucherForDb.VoucherNumber);
 		// Se envía a front-end 👇
 		res.send({
-			N_FACTURA: result.voucherNumber,
+			NRO_FACTURA: result.voucherNumber,
 			FECHA: CbteFch,
-			IMPORTE: newVoucher.ImpTotal,
-			FECHA_DE_VENCIMIENTO: FchVtoPago,
+			IMPORTE: voucherForDb.ImpTotal,
+			// FECHA_DE_VENCIMIENTO: FchVtoPago,
 			VER_FACTURA: PDFUrl, // la URL es una ruta POST de la API porque el PDF se genera en el momento
-			idCliente: newVoucher.IdClienteEnAccess
+			idCliente: voucherForDb.IdClienteEnAccess
 		});
 	} catch(error) {
 		console.error(error);

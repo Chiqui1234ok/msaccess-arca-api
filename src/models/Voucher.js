@@ -4,6 +4,9 @@ import { IvaSchema } from './Iva.js';
 
 const tributesSchema = new Schema({
   Id: { type: Number, required: true },
+  // This is commented because store the same string every tribute for every voucher is just insane 🤯
+  // We can get this string checking `tributes` table
+  // Desc: { type: String, required: true },
   Alic: { type: Number, required: true },
   BaseImp: { type: Number, required: true },
   Importe: { type: Number, required: true }

@@ -1,7 +1,6 @@
 import express from "express";
-import Aliquots from "../classes/Aliquots.js";
+import IvaAliquots from "../classes/IvaAliquots.js";
 import IvaConditionTypes from "../classes/IvaConditionTypes.js";
-import Arca from "../classes/Arca.js";
 
 const router = express.Router();
 
@@ -12,7 +11,7 @@ const router = express.Router();
  */
 router.get('/iva', async (req, res) => {
     try {
-        const result = await Aliquots.get();
+        const result = await IvaAliquots.get();
         res.send(result);
     } catch (error) {
         console.error(error);

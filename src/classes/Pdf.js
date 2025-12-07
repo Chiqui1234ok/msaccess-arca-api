@@ -43,16 +43,16 @@ export class Pdf {
             ImpIVA: result.ImpIVA,
             ImpTrib: result.ImpTrib,
             ImpTotal: result.ImpTotal,
+            Iva: result.Iva.toObject(),
+            Tributos: result.Tributos.toObject(),
             CAE: result.CAE,
             CAEFchVto: result.CAEFchVto
         }
-        const itemsIva = result.Iva;
 
         return {
             emisor,
             receptor,
-            voucher,
-            itemsIva
+            voucher
         };
     }
 

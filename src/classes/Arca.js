@@ -2,7 +2,7 @@ import fs from "fs";
 import Afip from "@afipsdk/afip.js";
 import path from 'path';
 import { fileURLToPath } from "url";
-import AliquotsSchema from "../models/Aliquots.js";
+import IvaAliquotsSchema from "../models/IvaAliquots.js";
 // import Tributes from "../models/Tributes.js";
 import Voucher from '../models/Voucher.js'
 import DateFormat from "../helpers/DateFormat.js";
@@ -106,7 +106,7 @@ export default class Arca extends Afip {
             const IvaValue = items[i].IVA != 0 && items[i].IVA <= 1 ? items[i].IVA * 100 : items[i].IVA;
 
             const IvaItem = {
-                Id: await AliquotsSchema.findOne({ Desc: IvaValue }).then(result => result ? result.Id : null),
+                Id: await IvaAliquotsSchema.findOne({ Desc: IvaValue }).then(result => result ? result.Id : null),
                 BaseImp: items[i].Importe * items[i].Cantidad,
                 Importe: (items[i].Importe * items[i].Cantidad) * (IvaValue / 100)
             };
@@ -236,27 +236,6 @@ export default class Arca extends Afip {
     }
 
     /**
-     * 
-     * @param {*} date - ex: "2025-08-01T03:00:00.000Z" 
-     * @param format - ex: "YMD", "DMY", etc. This uses an ENUM
-     * @returns ex: "2025-08-01T03:00:00.000Z" formatted to "20250801" (ARCA uses this format)
-     */
-    getAccessDate(date = new Date(), format = DateFormat.YMD) {
-        const d = (date instanceof Date) ? date : new Date(date);
-
-        const localTime = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-        const year = localTime.getFullYear().toString();
-        const month = String(localTime.getMonth() + 1).padStart(2, "0");
-        const day = String(localTime.getDate()).padStart(2, "0");
-
-        // Evaluar el enum usando replace
-        return format
-            .replace("${year}", `${year}/`)
-            .replace("${month}", `${month}/`)
-            .replace("${day}", `${day}`);
-    }
-
-    /**
      * Get IVA type from "Desc" field.
      * Example: "21" or "21%" returns the object with that description.
      */
@@ -264,7 +243,7 @@ export default class Arca extends Afip {
         // This replace is in case the user sends "21%" instead of "21". We store it as a number.
         const value = String(percentage).trim().replace('%', '');
         const Desc = parseFloat(value);
-        return AliquotsSchema.findOne({ Desc });
+        return IvaAliquotsSchema.findOne({ Desc });
     }
 
     /**
