@@ -75,12 +75,14 @@ router.post('/voucher/new', async (req, res) => {
 		let voucherForArca = voucherForDb.toObject();
 		voucherForArca.CantReg = 1;
 		// Removes "Desc", because ARCA will not accept this
-		voucherForArca.Iva.forEach(obj => {
-			delete obj.Desc;
-		});
-		voucherForArca.Tributos.forEach(obj => {
-			delete obj.Desc;
-		});
+
+		if (Array.isArray(voucherForArca.Iva)) {
+			voucherForArca.Iva.forEach(obj => delete obj.Desc);
+		}
+
+		if (Array.isArray(voucherForArca.Tributos)) {
+			voucherForArca.Tributos.forEach(obj => delete obj.Desc);
+		}
 
 		console.log('Se enviará a ARCA:', voucherForArca);
 
